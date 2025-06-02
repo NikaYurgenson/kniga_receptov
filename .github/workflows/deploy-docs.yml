@@ -27,6 +27,25 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Read .env.example file
+      id: dotenv
+      run: |
+        echo "Loading environment variables from .env.example"
+        if [ -f .env.example ]; then
+          while IFS= read -r line || [ -n "$line" ]; do
+            # Skip empty lines and comments
+            [[ -z "$line" || "$line" =~ ^#.* ]] && continue
+            # Extract variable and value
+            var_name=$(echo "$line" | cut -d '=' -f 1)
+            var_value=$(echo "$line" | cut -d '=' -f 2-)
+            # Set as environment variable and output for subsequent steps
+            echo "$var_name=$var_value" >> $GITHUB_ENV
+            echo "Loaded $var_name from .env.example"
+          done < .env.example
+        else
+          echo ".env.example file not found"
+        fi
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
