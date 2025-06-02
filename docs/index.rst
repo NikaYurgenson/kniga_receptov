@@ -16,3 +16,13 @@ Kniga Receptov - Документация
    architecture
    recipes
 
+.. toctree::
+   :maxdepth: 4
+   :caption: API Documentation
+
+   modules
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
+

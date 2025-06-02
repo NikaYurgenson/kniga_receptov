@@ -1,7 +1,38 @@
-kniga_receptov
-==============
+API Reference
+=============
 
-.. toctree::
-   :maxdepth: 4
+Recipe Bot Package
+------------------
 
-   setup
+.. automodule:: recipe_bot
+   :members:
+
+Bot Module
+~~~~~~~~~~
+
+.. automodule:: recipe_bot.bot
+   :members:
+
+CLI Module
+~~~~~~~~~~
+
+.. automodule:: recipe_bot.cli
+   :members:
+
+Config Module
+~~~~~~~~~~~~~
+
+.. automodule:: recipe_bot.config
+   :members:
+
+Music Module
+~~~~~~~~~~~~
+
+.. automodule:: recipe_bot.music
+   :members:
+
+Parser Module
+~~~~~~~~~~~~~
+
+.. automodule:: recipe_bot.parser
+   :members:
