@@ -1,0 +1,154 @@
+import requests
+from bs4 import BeautifulSoup
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+import random
+
+# === Настройки ===
+API_TOKEN = '7698307619:AAGx2vEsBAJ2zzk-O-fFljcfhtT9c80Cz9I'  # Укажи свой токен
+
+# === FSM ===
+class Form(StatesGroup):
+    category = State()
+
+# === Инициализация ===
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher(bot, storage=MemoryStorage())
+
+# === Кнопки ===
+category_kb = InlineKeyboardMarkup(row_width=3)
+category_kb.add(
+    InlineKeyboardButton(text='Супы', callback_data='category_soups'),
+    InlineKeyboardButton(text='Салаты', callback_data='category_salads'),
+    InlineKeyboardButton(text='Каши', callback_data='category_porridge'),
+    InlineKeyboardButton(text='Гарниры', callback_data='category_sides'),
+    InlineKeyboardButton(text='Рыба', callback_data='category_fish'),
+    InlineKeyboardButton(text='Мясо', callback_data='category_meat'),
+    InlineKeyboardButton(text='Десерты', callback_data='category_dessert')
+)
+
+# === URL категорий povarenok.ru ===
+CATEGORY_URLS = {
+    'soups': 'https://www.povarenok.ru/recipes/category/3/',
+    'salads': 'https://www.povarenok.ru/recipes/category/1/',
+    'porridge': 'https://www.povarenok.ru/recipes/category/24/',
+    'sides': 'https://www.povarenok.ru/recipes/category/22/',
+    'fish': 'https://www.povarenok.ru/recipes/category/17/',
+    'meat': 'https://www.povarenok.ru/recipes/category/14/',
+    'dessert': 'https://www.povarenok.ru/recipes/category/30/'
+}
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0"
+}
+
+# === Парсер подробного рецепта с красивым выводом ===
+def parse_full_recipe(recipe_url):
+    response = requests.get(recipe_url, headers=HEADERS)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, 'html.parser')
+
+    # Название рецепта
+    title_tag = soup.find('h1')
+    title = title_tag.get_text(strip=True) if title_tag else "Без названия"
+
+    # Ингредиенты
+    ingredients = []
+    ingr_section = soup.find('div', class_='ingredients')
+    if not ingr_section:
+        ingr_section = soup.find('div', class_='ingredients-bl')
+    if ingr_section:
+        for li in ingr_section.find_all('li'):
+            ingr_text = li.get_text(separator=' ', strip=True)
+            if ingr_text:
+                ingredients.append(ingr_text)
+
+    # Пошаговый рецепт
+    steps = []
+    ul = soup.find('ul', itemprop='recipeInstructions')
+    if ul:
+        for li in ul.find_all('li', class_='cooking-bl'):
+            p = li.find('p')
+            if p:
+                step_text = p.get_text(separator=' ', strip=True)
+                steps.append(step_text)
+
+    # Формируем текст ответа с эмодзи и красивым форматированием
+    text = f"🍽 <b>{title}</b>\n\n"
+
+    text += "🛒 <b>Ингредиенты:</b>\n"
+    if ingredients:
+        for ingr in ingredients:
+            text += f"  • {ingr}\n"
+    else:
+        text += "  Нет данных.\n"
+
+    text += "\n👩‍🍳 <b>Приготовление:</b>\n"
+    if steps:
+        for i, step in enumerate(steps, 1):
+            text += f"  {i}. {step}\n\n"
+    else:
+        text += "  Нет данных.\n"
+
+    text += f"\n🔗 <i>Источник: <a href='{recipe_url}'>Povarenok.ru</a></i>"
+
+    return text
+
+# === Получение рецептов из категории ===
+def get_recipes_from_category(category, limit=10):
+    url = CATEGORY_URLS.get(category)
+    if not url:
+        return []
+
+    response = requests.get(url, headers=HEADERS)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    articles = soup.find_all('article', class_='item-bl')
+
+    recipes = []
+    for article in articles[:limit]:
+        a_tag = article.find('a')
+        if not a_tag:
+            continue
+        link = a_tag['href']
+        if not link.startswith('http'):
+            link = "https://www.povarenok.ru" + link
+        recipes.append(link)
+
+    return recipes
+
+# === Обработчики ===
+@dp.message_handler(commands=['start'])
+async def cmd_start(message: types.Message):
+    await message.answer("Привет! Я ваш кулинарный помощник. Выберите категорию рецептов.", reply_markup=category_kb)
+    await Form.category.set()
+
+@dp.callback_query_handler(lambda c: c.data and c.data.startswith('category_'), state=Form.category)
+async def process_category(callback_query: types.CallbackQuery, state: FSMContext):
+    category = callback_query.data.split('_')[1]
+    await state.update_data(category=category)
+    await callback_query.answer()
+
+    recipes = get_recipes_from_category(category)
+
+    if not recipes:
+        await callback_query.message.answer("Рецепты не найдены.")
+        await state.finish()
+        return
+
+    recipe_url = random.choice(recipes)
+    try:
+        full_text = parse_full_recipe(recipe_url)
+        await callback_query.message.answer(full_text, parse_mode='HTML', disable_web_page_preview=True)
+    except Exception as e:
+        await callback_query.message.answer("Произошла ошибка при загрузке рецепта.")
+        print(f"Error: {e}")
+
+    await state.finish()
+
+# === Запуск ===
+if __name__ == '__main__':
+    from aiogram import executor
+    executor.start_polling(dp, skip_updates=True)
