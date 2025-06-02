@@ -8,15 +8,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libc6-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy only requirements first to leverage Docker cache
-COPY requirements.txt .
-COPY setup.py .
+# Copy application code first to ensure it's available for installation
+COPY . .
 
 # Create and activate virtual environment
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Install dependencies
+# Install dependencies and the application package
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir -e .
@@ -44,8 +43,5 @@ RUN groupadd -r botuser && useradd -r -g botuser botuser && \
 # Switch to non-root user
 USER botuser
 
-# Create volume for environment variables
-VOLUME ["/app/.env"]
-
-# Run the application with the recipe-bot entry point
-CMD ["recipe-bot"]
+# Run the application with the entry point
+CMD ["recipe_bot"]
