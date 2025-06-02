@@ -1,17 +1,18 @@
 from setuptools import setup, find_packages
 
+with open("requirements.txt") as f:
+    requirements = f.read().splitlines()
+
 setup(
-    name='recipe_telegram_bot',
-    version='0.1',
+    name='recipe-telegram-bot',
+    version='0.1.0',
     packages=find_packages(),
-    install_requires=[
-        'aiogram==2.25.2',
-        'requests',
-        'beautifulsoup4',
-    ],
+    include_package_data=True,
+    install_requires=requirements,
+    python_requires='>=3.10,<3.11',
     entry_points={
         'console_scripts': [
-            'start-bot=main:main',
+            'recipe-bot=main:main',
         ],
     },
 )
