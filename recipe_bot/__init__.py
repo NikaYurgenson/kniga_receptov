@@ -1,0 +1,2 @@
+"""Recipe Telegram Bot package."""
+
