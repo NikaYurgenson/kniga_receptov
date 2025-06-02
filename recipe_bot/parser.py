@@ -8,12 +8,24 @@ from recipe_bot.config import HEADERS, CATEGORY_URLS
 
 
 def parse_full_recipe(recipe_url):
-    """Parse a recipe from povarenok.ru website."""
+    """Parse a recipe from povarenok.ru website with image."""
     response = httpx.get(recipe_url, headers=HEADERS)
     response.raise_for_status()
     soup = BeautifulSoup(response.text, 'html.parser')
 
     title = soup.find('h1').get_text(strip=True) if soup.find('h1') else "Без названия"
+
+    # Extract image URL
+    image_url = None
+    img_tag = soup.find('div', class_='recipe-photo')
+    if img_tag:
+        img = img_tag.find('img')
+        if img and img.has_attr('src'):
+            image_url = img['src']
+    if not image_url:
+        meta_img = soup.find('meta', property='og:image')
+        if meta_img and meta_img.has_attr('content'):
+            image_url = meta_img['content']
 
     ingredients = []
     ingr_section = soup.find('div', class_='ingredients') or soup.find('div', class_='ingredients-bl')
@@ -44,7 +56,7 @@ def parse_full_recipe(recipe_url):
 
     text += f"\n🔗 <i>Источник: <a href='{recipe_url}'>Povarenok.ru</a></i>"
 
-    return text
+    return text, image_url
 
 
 def get_recipes_from_category(category, limit=10):
@@ -74,7 +86,7 @@ def get_random_recipe(category):
     """Get a random recipe from the specified category."""
     recipes = get_recipes_from_category(category)
     if not recipes:
-        return None
+        return None, None
 
     recipe_url = random.choice(recipes)
     return parse_full_recipe(recipe_url)

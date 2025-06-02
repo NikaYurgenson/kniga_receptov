@@ -21,6 +21,14 @@ CATEGORY_URLS = {
     'dessert': 'https://www.povarenok.ru/recipes/category/30/'
 }
 
+FMA_GENRES = {
+    "Electronic": "https://freemusicarchive.org/genre/Electronic/",
+    "Jazz": "https://freemusicarchive.org/genre/Jazz/",
+    "Classical": "https://freemusicarchive.org/genre/Classical/",
+    "Rock": "https://freemusicarchive.org/genre/Rock/",
+    "Hip-Hop": "https://freemusicarchive.org/genre/Hip-Hop/",
+}
+
 HEADERS = {
     "User-Agent": "Mozilla/5.0"
 }
